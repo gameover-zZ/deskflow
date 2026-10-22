@@ -270,6 +270,17 @@ jobs:
           vcpkg-triplet: ${{matrix.target.vcpkg-triplet}}
           like: ${{ matrix.target.like }}
 
+      - name: Remove WiX on forks
+        if: runner.os == 'Windows' && github.repository != 'deskflow/deskflow'
+        shell: pwsh
+        run: |
+          # the WiX MSI generator fails on forks, keep the ZIP package only
+          $wix = Join-Path $env:USERPROFILE '.dotnet\tools\wix.exe'
+          if (Test-Path $wix) {
+            Remove-Item $wix -Force
+            Write-Host "removed $wix, only the ZIP package will be produced"
+          }
+
       - name: Get version
         uses: ./.github/actions/get-version
 
