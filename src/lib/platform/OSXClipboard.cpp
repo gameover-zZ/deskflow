@@ -10,6 +10,7 @@
 #include "arch/ArchException.h"
 #include "base/Log.h"
 #include "platform/OSXClipboardBMPConverter.h"
+#include "platform/OSXClipboardFilesConverter.h"
 #include "platform/OSXClipboardHTMLConverter.h"
 #include "platform/OSXClipboardTextConverter.h"
 #include "platform/OSXClipboardUTF16Converter.h"
@@ -26,6 +27,7 @@ OSXClipboard::OSXClipboard() : m_time(0), m_pboard(nullptr)
   m_converters.push_back(new OSXClipboardUTF8Converter);
   m_converters.push_back(new OSXClipboardUTF16Converter);
   m_converters.push_back(new OSXClipboardTextConverter);
+  m_converters.push_back(new OSXClipboardFilesConverter);
 
   OSStatus createErr = PasteboardCreate(kPasteboardClipboard, &m_pboard);
   if (createErr != noErr) {
@@ -79,6 +81,11 @@ void OSXClipboard::add(Format format, const std::string &data)
 {
   if (m_pboard == nullptr)
     return;
+
+  if (data.empty()) {
+    LOG_DEBUG("not adding 0 bytes to clipboard format: %d", format);
+    return;
+  }
 
   LOG_DEBUG("add %d bytes to clipboard format: %d", data.size(), format);
   if (format == IClipboard::Format::Text) {

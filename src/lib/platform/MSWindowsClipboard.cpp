@@ -11,6 +11,7 @@
 #include "base/Log.h"
 #include "platform/MSWindowsClipboardBitmapConverter.h"
 #include "platform/MSWindowsClipboardFacade.h"
+#include "platform/MSWindowsClipboardFiles.h"
 #include "platform/MSWindowsClipboardHTMLConverter.h"
 #include "platform/MSWindowsClipboardUTF16Converter.h"
 
@@ -89,6 +90,19 @@ void MSWindowsClipboard::add(Format format, const std::string &data)
     LOG_DEBUG("not adding 0 bytes to clipboard format: %d", format);
     return;
   }
+
+  // Files are staged on disk and published as CF_HDROP.  There is deliberately no
+  // converter for this format: deskflow must not report files another application
+  // copied, otherwise grabbing a file on this computer would send an empty payload
+  // and wipe the clipboard of every other computer.
+  if (format == IClipboard::Format::Files) {
+    HANDLE win32Data = deskflow::createWindowsFileDrop(data);
+    if (win32Data != nullptr) {
+      m_facade->write(win32Data, CF_HDROP);
+    }
+    return;
+  }
+
   bool isSucceeded = false;
   // convert data to win32 form
   for (ConverterList::const_iterator index = m_converters.begin(); index != m_converters.end(); ++index) {

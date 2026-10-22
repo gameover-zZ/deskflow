@@ -45,12 +45,17 @@ public:
   \c kHTML is a text format encoded in UTF-8 and containing a valid
   HTML fragment (but not necessarily a complete HTML document).
   Newlines are LF.
+
+  \c kFiles is a single file carried by the clipboard.  The payload is
+  produced by deskflow::packClipboardFile() and holds the file name and
+  its raw contents, so a receiver can materialise the file locally.
   */
   enum class Format
   {
     Text,        //!< Text format, UTF-8, newline is LF
     HTML,        //!< HTML format, HTML fragment, UTF-8, newline is LF
     Bitmap,      //!< Bitmap format, BMP 24/32bpp, BI_RGB
+    Files,       //!< Single file, see deskflow::packClipboardFile()
     TotalFormats //!< The number of clipboard formats supported
   };
 
