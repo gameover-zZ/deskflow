@@ -91,6 +91,8 @@ jobs:
     env:
       # forks have no signing secrets, skip signing instead of failing the build
       HAS_APPLE_CERT: ${{ secrets.APPLE_CODESIGN_P12 != '' }}
+      # an empty WIX_APP keeps find_program() from enabling the WiX MSI generator
+      WIX_ARG: ${{ github.repository != 'deskflow/deskflow' && '-DWIX_APP=' || '' }}
     strategy:
       # Normally, we want to fail fast, but in this case we shouldn't since one target may
       # fail due to transient issues unrelated to the build.
@@ -270,36 +272,13 @@ jobs:
           vcpkg-triplet: ${{matrix.target.vcpkg-triplet}}
           like: ${{ matrix.target.like }}
 
-      - name: Remove WiX on forks
-        if: runner.os == 'Windows' && github.repository != 'deskflow/deskflow'
-        shell: pwsh
-        run: |
-          # the WiX MSI generator is not available on forks, keep the ZIP package only
-          $removed = @()
-          Get-Command wix -All -ErrorAction SilentlyContinue | ForEach-Object {
-            if (Test-Path $_.Source) {
-              Remove-Item $_.Source -Force -ErrorAction SilentlyContinue
-              $removed += $_.Source
-            }
-          }
-          foreach ($dir in @("$env:USERPROFILE\.dotnet\tools", 'C:\Program Files\dotnet\tools')) {
-            Get-ChildItem -Path $dir -Filter 'wix*' -ErrorAction SilentlyContinue | ForEach-Object {
-              Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
-              $removed += $_.FullName
-            }
-          }
-          Write-Host "removed: $($removed -join ', ')"
-          if (Get-Command wix -ErrorAction SilentlyContinue) {
-            Write-Host "::error::wix is still available, the MSI generator will run and fail"
-          }
-
       - name: Get version
         uses: ./.github/actions/get-version
 
       - name: Configure
         env:
           APPLE_CODESIGN_DEV: ${{ ((github.ref == 'refs/heads/master') || (contains(github.ref, '/tags/v'))) && secrets.APPLE_CODESIGN_DEV || '' }}
-        run: ${{env.CMAKE_CONFIGURE}} ${{ matrix.target.config-args }} ${{ steps.get-deps.outputs.vcpkg-cmake-config }} -DPACKAGE_VERSION_LABEL="${{env.DESKFLOW_PACKAGE_VERSION}}"
+        run: ${{env.CMAKE_CONFIGURE}} ${{ matrix.target.config-args }} ${{env.WIX_ARG}} ${{ steps.get-deps.outputs.vcpkg-cmake-config }} -DPACKAGE_VERSION_LABEL="${{env.DESKFLOW_PACKAGE_VERSION}}"
 
       - name: Import code-signing certificate
         if: runner.os == 'macOS' && ((github.ref == 'refs/heads/master') || (contains(github.ref, '/tags/v'))) && env.HAS_APPLE_CERT == 'true'
