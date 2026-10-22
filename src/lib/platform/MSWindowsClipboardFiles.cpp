@@ -21,6 +21,23 @@
 
 namespace {
 
+//! Byte layout Windows expects behind a CF_HDROP handle
+/*!
+Equivalent to the DROPFILES structure, which lives in shellapi.h and is therefore
+not part of this translation unit because WIN32_LEAN_AND_MEAN keeps that header
+out of Windows.h.  The CF_HDROP layout is a stable part of the Win32 contract.
+*/
+struct DropFilesHeader
+{
+  DWORD pFiles;
+  LONG ptX;
+  LONG ptY;
+  BOOL fNC;
+  BOOL fWide;
+};
+
+static_assert(sizeof(DropFilesHeader) == 20, "CF_HDROP header must match DROPFILES");
+
 QString stagingRoot()
 {
   static const QString root =
@@ -82,7 +99,7 @@ HANDLE createWindowsFileDrop(const std::string &payload)
   pathList.push_back(L'\0');
 
   const auto pathListSize = pathList.size() * sizeof(wchar_t);
-  const auto dropSize = sizeof(DROPFILES) + pathListSize;
+  const auto dropSize = sizeof(DropFilesHeader) + pathListSize;
 
   HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE | GMEM_ZEROINIT, dropSize);
   if (memory == nullptr) {
@@ -90,15 +107,15 @@ HANDLE createWindowsFileDrop(const std::string &payload)
     return nullptr;
   }
 
-  auto *drop = static_cast<DROPFILES *>(GlobalLock(memory));
+  auto *drop = static_cast<DropFilesHeader *>(GlobalLock(memory));
   if (drop == nullptr) {
     GlobalFree(memory);
     return nullptr;
   }
 
-  drop->pFiles = static_cast<DWORD>(sizeof(DROPFILES));
+  drop->pFiles = static_cast<DWORD>(sizeof(DropFilesHeader));
   drop->fWide = TRUE;
-  std::memcpy(reinterpret_cast<char *>(drop) + sizeof(DROPFILES), pathList.data(), pathListSize);
+  std::memcpy(reinterpret_cast<char *>(drop) + sizeof(DropFilesHeader), pathList.data(), pathListSize);
 
   GlobalUnlock(memory);
 
