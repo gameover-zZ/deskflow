@@ -302,7 +302,17 @@ jobs:
         run: |
           if [[ "${{matrix.target.like}}" != "arch" ]]; then
             if [ "$RUNNER_OS" != "macOS" ]; then
-              cmake --build build --config Release -j8 --target package
+              cmake --build build --config Release -j8 --target package > build-win.log 2>&1
+              build_status=$?
+              if [ $build_status -ne 0 ]; then
+                # surface the compiler error as an annotation so it is visible without the full log
+                grep -iE "error[ :]|FAILED" build-win.log | head -n 15 | while IFS= read -r line; do
+                  echo "::error::$line"
+                done
+                tail -n 30 build-win.log
+                exit $build_status
+              fi
+              cat build-win.log
             else
               cmake --build build --config Release -j8
               packaged=false
