@@ -190,6 +190,12 @@ elseif(UNIX)
   endif()
 endif()
 
+# clipboard file payload helpers, shared by the macOS and Windows converters
+list(APPEND PLATFORM_SOURCES
+  ClipboardFiles.cpp
+  ClipboardFiles.h
+)
+
 # wayland.h is included to check for wayland support
 add_library(platform STATIC ${PLATFORM_SOURCES})
 

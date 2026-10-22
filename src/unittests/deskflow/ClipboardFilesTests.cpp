@@ -6,7 +6,7 @@
 
 #include "ClipboardFilesTests.h"
 
-#include "deskflow/ClipboardFiles.h"
+#include "platform/ClipboardFiles.h"
 
 namespace {
 

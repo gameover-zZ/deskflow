@@ -7,7 +7,7 @@
 #include "platform/OSXClipboardFilesConverter.h"
 
 #include "base/Log.h"
-#include "deskflow/ClipboardFiles.h"
+#include "platform/ClipboardFiles.h"
 
 #include <QFile>
 #include <QFileInfo>

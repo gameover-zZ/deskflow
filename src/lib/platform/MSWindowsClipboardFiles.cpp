@@ -7,7 +7,7 @@
 #include "platform/MSWindowsClipboardFiles.h"
 
 #include "base/Log.h"
-#include "deskflow/ClipboardFiles.h"
+#include "platform/ClipboardFiles.h"
 
 #include <QDir>
 #include <QFile>
