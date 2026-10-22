@@ -274,11 +274,23 @@ jobs:
         if: runner.os == 'Windows' && github.repository != 'deskflow/deskflow'
         shell: pwsh
         run: |
-          # the WiX MSI generator fails on forks, keep the ZIP package only
-          $wix = Join-Path $env:USERPROFILE '.dotnet\tools\wix.exe'
-          if (Test-Path $wix) {
-            Remove-Item $wix -Force
-            Write-Host "removed $wix, only the ZIP package will be produced"
+          # the WiX MSI generator is not available on forks, keep the ZIP package only
+          $removed = @()
+          Get-Command wix -All -ErrorAction SilentlyContinue | ForEach-Object {
+            if (Test-Path $_.Source) {
+              Remove-Item $_.Source -Force -ErrorAction SilentlyContinue
+              $removed += $_.Source
+            }
+          }
+          foreach ($dir in @("$env:USERPROFILE\.dotnet\tools", 'C:\Program Files\dotnet\tools')) {
+            Get-ChildItem -Path $dir -Filter 'wix*' -ErrorAction SilentlyContinue | ForEach-Object {
+              Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+              $removed += $_.FullName
+            }
+          }
+          Write-Host "removed: $($removed -join ', ')"
+          if (Get-Command wix -ErrorAction SilentlyContinue) {
+            Write-Host "::error::wix is still available, the MSI generator will run and fail"
           }
 
       - name: Get version
@@ -400,6 +412,7 @@ jobs:
           force_orphan: true
 
       - name: Upload
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: package-${{ env.PACKAGE_PREFIX }}-${{ matrix.target.name }}
